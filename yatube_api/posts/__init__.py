@@ -1,0 +1,1 @@
+'posts.apps.PostsConfig'
