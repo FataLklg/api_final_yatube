@@ -4,11 +4,12 @@ from api.serializers import (CommentSerializer, FollowSerializer,
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from posts.models import Comment, Group, Post, User
-from rest_framework import filters, status, viewsets
+from rest_framework import filters, viewsets
+from rest_framework.mixins import CreateModelMixin, ListModelMixin
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import (IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
-from rest_framework.response import Response
+from rest_framework.viewsets import GenericViewSet
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -38,7 +39,7 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         pk = self.kwargs.get("post_id")
-        return Comment.objects.filter(post=pk)
+        return Comment.objects.filter(post__pk=pk)
 
     def perform_create(self, serializer):
         post = get_object_or_404(Post, pk=self.kwargs['post_id'])
@@ -46,25 +47,19 @@ class CommentViewSet(viewsets.ModelViewSet):
                         post=post)
 
 
-class FollowViewSet(viewsets.ModelViewSet):
+class FollowViewSet(ListModelMixin, CreateModelMixin, GenericViewSet):
     """Viewset для модели подписчиков."""
     serializer_class = FollowSerializer
     permission_classes = [IsAuthenticated]
-    http_method_names = ['get', 'post']
     filter_backends = (DjangoFilterBackend, filters.SearchFilter)
     search_fields = ('following__username',)
 
     def get_queryset(self):
-        return self.request.user.follower
+        return self.request.user.follower.all()
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        following = get_object_or_404(User, username=request.data['following'])
-        if request.user == following:
-            return Response(
-                serializer.errors,
-                status=status.HTTP_400_BAD_REQUEST
-            )
+    def perform_create(self, serializer):
+        following = get_object_or_404(
+            User,
+            username=self.request.data['following']
+        )
         serializer.save(user=self.request.user, following=following)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
