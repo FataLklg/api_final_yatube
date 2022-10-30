@@ -12,9 +12,6 @@ ____
 
 ```
 git clone https://github.com/FataLklg/api_final_yatube.git
-```
-
-```
 cd api_final_yatube
 ```
 
@@ -142,7 +139,3 @@ ___
         "following": "test1_user"
     }
     ```
-### Авторы:
-___
-- ##### __Антон Тарасов__
-
